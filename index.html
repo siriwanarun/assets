@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="th">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ระบบจัดการสินทรัพย์ถาวร</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Roboto:wght@300;400;500&display=swap"
+            rel="stylesheet">
+        <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+        <style>
+        /* ================================================= */
+        /* Global & Body Styles */
+        /* ================================================= */
+        body {
+            font-family: 'Kanit', 'Roboto', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh; /* Full viewport height */
+            overflow: hidden; /* Prevent body scroll, content will scroll within tab-content */
+            background-color: #f0f2f5;
+            color: #333;
+        }
+
+        /* ================================================= */
+        /* Header Section */
+        /* ================================================= */
+        .header {
+            background-color: #a8dadc; /* Light Blue */
+            color: #333; /* Dark text */
+            padding: 12px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            z-index: 10;
+            flex-shrink: 0; /* Prevent header from shrinking */
+        }
+
+        .app-title {
+            margin: 0;
+            font-size: 1.8em;
+            font-weight: 500;
+        }
+
+        .window-controls button {
+            background: none;
+            border: none;
+            color: #333;
+            padding: 8px 12px;
+            margin-left: 8px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 1.1em;
+            transition: background-color 0.2s ease;
+        }
+
+        .window-controls button:hover {
+            background-color: rgba(0,0,0,0.1);
+            color: #fff;
+        }
+/* --- Floating Window Styles --- */
+#assetListFloatingWindow {
+    display: none; /* ซ่อนไว้ตอนเริ่มต้น */
+    position: fixed; /* ให้ลอยเหนือเนื้อหาอื่น */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* จัดตำแหน่งกึ่งกลาง */
+    background-color: #ffffff; /* ใช้สีพื้นหลังที่เข้ากับดีไซน์เดิมของคุณ */
+    border: 1px solid #c0d9e8; /* ใช้สีขอบที่เข้ากับดีไซน์เดิมของคุณ */
+    border-radius: 8px; /* ใช้ border-radius เดียวกันกับส่วนอื่นๆ */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* เพิ่มเงาให้ดูมีมิติ */
+    z-index: 2000; /* ให้แสดงทับเนื้อหาอื่นทั้งหมด (มากกว่า modal หรือ tab content) */
+    width: 800px; /* ขนาดเริ่มต้นของ Floating Window, ปรับได้ตามต้องการ */
+    max-width: 90%; /* ไม่เกิน 90% ของความกว้างจอ */
+    height: 600px; /* ความสูงเริ่มต้น, ปรับได้ตามต้องการ */
+    max-height: 90vh; /* ไม่เกิน 90% ของความสูง viewport */
+    overflow: hidden; /* ซ่อนเนื้อหาที่เกิน */
+    display: flex;
+    flex-direction: column;
+}
+
+#assetListFloatingWindow .header-draggable {
+    background-color: #457b9d; /* ใช้สีเดียวกับ .header ใน index.html */
+    color: white;
+    padding: 10px 15px;
+    cursor: grab; /* เปลี่ยนเคอร์เซอร์เมื่อลาก */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 500;
+    font-size: 1.1em;
+    border-top-left-radius: 8px; /* ให้มุมมนตาม container */
+    border-top-right-radius: 8px;
+}
+
+#assetListFloatingWindow .header-draggable h3 {
+    margin: 0;
+    font-size: 1em; /* ปรับขนาดตัวอักษรให้เล็กลงหน่อย */
+}
+
+#assetListFloatingWindow .window-controls {
+    display: flex;
+    gap: 10px; /* ระยะห่างระหว่างปุ่ม */
+}
+
+#assetListFloatingWindow .window-controls span {
+    cursor: pointer;
+    font-size: 1.2em;
+    padding: 2px 5px; /* เพิ่ม padding ให้กดง่ายขึ้น */
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+}
+
+#assetListFloatingWindow .window-controls span:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+#assetListFloatingWindow .window-content {
+    flex-grow: 1; /* ให้เนื้อหาขยายเต็มพื้นที่ที่เหลือ */
+    overflow-y: auto; /* เปิดใช้งาน scrollbar หากเนื้อหาเกิน */
+    padding: 15px; /* เพิ่ม padding ให้เนื้อหาไม่ติดขอบ */
+    box-sizing: border-box; /* รวม padding เข้าไปในความกว้าง/สูง */
+}
+
+/* --- Resizable Handles --- */
+.resize-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: transparent; /* ซ่อน handle */
+    z-index: 2001; /* อยู่เหนือ window */
+}
+
+.resize-handle.top-left { top: 0; left: 0; cursor: nwse-resize; }
+.resize-handle.top-right { top: 0; right: 0; cursor: nesw-resize; }
+.resize-handle.bottom-left { bottom: 0; left: 0; cursor: nesw-resize; }
+.resize-handle.bottom-right { bottom: 0; right: 0; cursor: nwse-resize; }
+.resize-handle.top { top: 0; left: 10px; right: 10px; cursor: ns-resize; height: 5px; }
+.resize-handle.bottom { bottom: 0; left: 10px; right: 10px; cursor: ns-resize; height: 5px; }
+.resize-handle.left { left: 0; top: 10px; bottom: 10px; cursor: ew-resize; width: 5px; }
+.resize-handle.right { right: 0; top: 10px; bottom: 10px; cursor: ew-resize; width: 5px; }
+
+/* --- Taskbar-like area for minimized windows --- */
+.taskbar-like-area {
+    position: fixed;
+    bottom: 0; /* ติดอยู่ขอบล่าง */
+    left: 0;
+    width: 100%;
+    background-color: #3f51b5; /* สีน้ำเงินเข้ม */
+    padding: 5px 10px;
+    display: flex; /* ให้แสดงแบบ flex เพื่อจัดเรียงไอคอน */
+    align-items: center;
+    gap: 10px;
+    z-index: 1500; /* อยู่เหนือเนื้อหาปกติ แต่ต่ำกว่า Floating Window ที่เปิดอยู่ */
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    /* *** เพิ่มบรรทัดนี้: ซ่อนไว้ตอนแรก และจะแสดงเมื่อมีหน้าต่างถูกย่อ *** */
+    display: none; 
+}
+
+.minimized-window-icon {
+    background-color: #5c6bc0; /* สีน้ำเงินอ่อนลง */
+    color: white;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.minimized-window-icon:hover {
+    background-color: #7986cb;
+    transform: translateY(-2px); /* ยกขึ้นเล็กน้อยเมื่อ hover */
+}
+
+.minimized-window-icon i {
+    font-size: 1.1em;
+}
+        /* ================================================= */
+        /* Navigation Bar Section */
+        /* ================================================= */
+        .nav-bar {
+            background-color: #ffffff; /* White */
+            border-bottom: 1px solid #e0e0e0;
+            padding: 8px 25px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            z-index: 9;
+            flex-shrink: 0; /* Prevent nav-bar from shrinking */
+        }
+
+        .nav-bar ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap; /* Allow menu items to wrap to next line */
+            flex-grow: 1; /* Allow it to take available space */
+        }
+
+        .nav-bar ul li {
+            position: relative;
+            flex-shrink: 0; /* Prevent li from shrinking */
+        }
+
+        .nav-bar ul li a {
+            display: block;
+            padding: 10px 18px;
+            text-decoration: none;
+            color: #555;
+            font-weight: 500;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            border-radius: 5px;
+            white-space: nowrap; /* Prevent menu text from wrapping */
+        }
+
+        .nav-bar ul li a:hover {
+            background-color: #f1faee;
+            color: #457b9d;
+        }
+
+        /* Dropdown Menu */
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #ffffff;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.15);
+            z-index: 1000;
+            border-radius: 5px;
+            padding: 5px 0;
+            margin-top: 5px;
+        }
+
+        .dropdown-content a {
+            color: #333;
+            padding: 12px 20px;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+            font-weight: normal;
+            transition: background-color 0.2s ease;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #f0f2f5;
+        }
+
+        .nav-bar ul li:hover .dropdown-content {
+            display: block;
+        }
+
+        /* Quick Actions (Search & Notifications) */
+        .quick-actions {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            flex-shrink: 0; /* Prevent this section from shrinking */
+        }
+
+        .quick-search input {
+            padding: 8px 15px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin-right: 15px;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .quick-search input:focus {
+            border-color: #457b9d;
+            box-shadow: 0 0 5px rgba(69, 123, 157, 0.5);
+        }
+
+        .notification-icon {
+            position: relative;
+            cursor: pointer;
+            font-size: 1.4em;
+            color: #555;
+            padding: 5px;
+            transition: color 0.2s ease;
+        }
+
+        .notification-icon:hover {
+            color: #457b9d;
+        }
+
+        .notification-icon span {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            padding: 3px 7px;
+            font-size: 0.7em;
+            line-height: 1;
+            font-weight: 600;
+            border: 1px solid white;
+        }
+
+        /* ================================================= */
+        /* Workspace (Main Content Area - Acts as "Body") */
+        /* ================================================= */
+        .workspace {
+            flex-grow: 1; /* Allow workspace to take all available vertical space */
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            margin: 15px;
+            border-radius: 8px;
+            overflow: hidden; /* Important for containing content */
+            box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+        }
+
+        /* Tab Content Area (inside Workspace) */
+        .tab-content {
+            flex-grow: 1; /* Allow tab content to take all available space within workspace */
+            padding: 25px;
+            background-color: #ffffff;
+            overflow-y: auto; /* Enable vertical scrolling for tab content */
+            border-radius: 8px 8px 0 0;
+        }
+
+        .tab-pane {
+            display: none;
+            height: 100%; /* Important for inner scrolling content */
+            overflow: auto; /* Enable scrolling for individual panes if their content overflows */
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Tab Bar (Bottom of Workspace) */
+        .tab-bar {
+            display: flex;
+            background-color: #f2fae2;
+            border-top: 1px solid #dcdcdc;
+            padding: 0 15px;
+            overflow-x: auto; /* Enable horizontal scrolling for tabs */
+            white-space: nowrap;
+            min-height: 45px;
+            align-items: center;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+            flex-shrink: 0; /* Prevent tab-bar from shrinking */
+        }
+
+        .tab {
+            padding: 10px 20px;
+            border: none;
+            border-right: 1px solid #dcdcdc;
+            cursor: pointer;
+            background-color: #f2fae2;
+            margin-right: 0;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            color: #555;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            flex-shrink: 0;
+            font-size: 0.95em;
+        }
+
+        .tab:first-child {
+            border-left: 1px solid #dcdcdc;
+        }
+
+        .tab.active {
+            background-color: #ffffff;
+            color: #333;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+            position: relative;
+            z-index: 1;
+            border-left: 1px solid #dcdcdc;
+            border-right: 1px solid #dcdcdc;
+            border-top: 3px solid #457b9d;
+            padding-top: 7px;
+        }
+
+        .tab .close-tab {
+            margin-left: 12px;
+            font-weight: bold;
+            color: #999;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: color 0.2s ease;
+        }
+
+        .tab .close-tab:hover {
+            color: #e74c3c;
+        }
+
+        .tab.add-tab {
+            background-color: #f2fae2;
+            border: none;
+            font-size: 1.8em;
+            padding: 5px 10px;
+            align-self: center;
+            margin-left: auto;
+            cursor: pointer;
+            color: #555;
+            transition: color 0.2s ease;
+        }
+
+        .tab.add-tab:hover {
+            color: #457b9d;
+        }
+
+        /* Content Placeholder (for demo purpose, remove when actual content is added) */
+        .content-placeholder {
+            border: 1px dashed #dcdcdc;
+            padding: 30px;
+            text-align: center;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            background-color: #fcfcfc;
+            border-radius: 6px;
+            height: 100%;
+            box-sizing: border-box;
+            line-height: 1.6;
+        }
+
+        .content-placeholder h2 {
+            color: #457b9d;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .content-placeholder h3 {
+            color: #457b9d;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .content-placeholder ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .content-placeholder ul li {
+            background-color: #f1faee;
+            padding: 8px 15px;
+            border-left: 4px solid #457b9d;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            color: #333;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+        }
+
+        .content-placeholder ul li i {
+            margin-right: 10px;
+            color: #457b9d;
+        }
+
+        /* ================================================= */
+        /* Status Bar Section (Acts as "Footer") */
+        /* ================================================= */
+        .status-bar {
+            background-color: #e0e0e0;
+            color: #333;
+            padding: 10px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85em;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            flex-shrink: 0; /* Prevent status-bar from shrinking */
+        }
+
+        .status-info,
+        .user-info,
+        .datetime-info {
+            margin-right: 20px;
+        }
+
+        .status-info i,
+        .user-info i,
+        .datetime-info i {
+            margin-right: 5px;
+        }
+
+        /* ================================================= */
+        /* Modal Styles */
+        /* ================================================= */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 2000; /* Sit on top, higher than other elements */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+            justify-content: center; /* Center horizontally with flexbox */
+            align-items: center; /* Center vertically with flexbox */
+            padding: 20px; /* Add some padding for smaller screens */
+            box-sizing: border-box; /* Include padding in width/height */
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            margin: auto; /* Fallback for older browsers not supporting flex centering */
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+            max-width: 600px; /* Max width for desktop */
+            width: 90%; /* Responsive width */
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh; /* Max height to prevent overflow on small screens */
+        }
+
+        .modal-content h2 {
+            color: #457b9d;
+            margin-top: 0;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            font-size: 1.6em;
+            font-weight: 600;
+        }
+
+        .modal-content h2 i {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: #333;
+            text-decoration: none;
+        }
+
+        .notification-list {
+            flex-grow: 1; /* Allow list to grow and shrink */
+            overflow-y: auto; /* Enable scrolling for notifications */
+            margin-bottom: 20px;
+            padding-right: 10px; /* Compensate for scrollbar width if present */
+        }
+
+        .notification-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px; /* Space between icon and text */
+            font-size: 0.95em;
+            line-height: 1.4;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            border-radius: 5px;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-item:hover {
+            background-color: #f8f8f8;
+        }
+
+        .notification-item i {
+            font-size: 1.2em;
+            color: #999;
+            flex-shrink: 0; /* Prevent icon from shrinking */
+            padding-top: 2px; /* Align icon slightly better with text */
+        }
+
+        .notification-item.unread {
+            background-color: #e6f0ff; /* Light blue for unread */
+            border-left: 4px solid #457b9d; /* Accent border */
+            font-weight: 500;
+            color: #333;
+        }
+
+        .notification-item.unread i {
+            color: #457b9d; /* Accent color for unread icon */
+        }
+
+        .notification-text {
+            flex-grow: 1;
+        }
+
+        .notification-date {
+            display: block;
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .modal-footer button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .mark-all-read-button {
+            background-color: #f1faee;
+            color: #457b9d;
+        }
+
+        .mark-all-read-button:hover {
+            background-color: #d8e5f2;
+            color: #333;
+        }
+
+        .view-all-button {
+            background-color: #457b9d; /* Accent color */
+            color: white;
+        }
+
+        .view-all-button:hover {
+            background-color: #315e7a; /* Darker accent */
+        }
+
+        /* ================================================= */
+        /* Responsive Styles (Media Queries)     */
+        /* ================================================= */
+
+        /* Extra Small devices (phones, 600px and down) */
+        @media only screen and (max-width: 600px) {
+            body {
+                font-size: 0.9rem; /* Adjust overall font size */
+            }
+
+            /* Header Section */
+            .header {
+                padding: 10px 15px;
+                flex-wrap: wrap; 
+                justify-content: center; 
+                text-align: center;
+            }
+
+            .app-title {
+                font-size: 1.4em;
+                width: 100%;
+                margin-bottom: 5px;
+            }
+
+            .window-controls {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+                margin-top: 5px;
+            }
+
+            .window-controls button {
+                padding: 5px 8px;
+                font-size: 0.9em;
+                margin: 0 5px;
+            }
+
+            /* Navigation Bar Section */
+            .nav-bar {
+                padding: 5px 10px;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .nav-bar ul {
+                flex-direction: column;
+                width: 100%;
+                text-align: center;
+                border-bottom: 1px solid #e0e0e0;
+                padding-bottom: 5px;
+                margin-bottom: 5px;
+            }
+
+            .nav-bar ul li {
+                width: 100%;
+                margin-bottom: 2px;
+            }
+            
+            .nav-bar ul li a {
+                padding: 8px 10px;
+                font-size: 0.9em;
+            }
+
+            /* Hide dropdown menu for mobile */
+            .nav-bar ul li:hover .dropdown-content,
+            .dropdown-content {
+                display: none;
+            }
+            
+            .quick-actions {
+                width: 100%;
+                justify-content: center;
+                margin-left: 0;
+                margin-top: 10px;
+            }
+
+            .quick-search input {
+                width: 80%;
+                margin-right: 10px;
+                font-size: 0.85em;
+                padding: 6px 12px;
+            }
+
+            .notification-icon {
+                font-size: 1.2em;
+            }
+
+            /* Workspace Section */
+            .workspace {
+                margin: 10px;
+                border-radius: 5px;
+            }
+
+            .tab-content {
+                padding: 15px;
+                border-radius: 5px 5px 0 0;
+            }
+
+            .tab-bar {
+                padding: 0 5px;
+                min-height: 40px;
+                font-size: 0.85em;
+            }
+
+            .tab {
+                padding: 8px 12px;
+                font-size: 0.8em;
+            }
+            
+            .tab.active {
+                padding-top: 5px;
+            }
+
+            .tab .close-tab {
+                margin-left: 8px;
+                font-size: 0.8em;
+            }
+
+            .tab.add-tab {
+                font-size: 1.5em;
+                padding: 3px 8px;
+            }
+
+            /* Status Bar Section */
+            .status-bar {
+                padding: 8px 15px;
+                flex-direction: column;
+                align-items: flex-start;
+                font-size: 0.75em;
+            }
+            .status-info, .user-info, .datetime-info {
+                margin-right: 0;
+                margin-bottom: 3px;
+            }
+            .status-info:last-child, .user-info:last-child {
+                margin-bottom: 0;
+            }
+
+            /* Content Placeholder adjustments */
+            .content-placeholder {
+                padding: 20px;
+                min-height: 150px;
+            }
+            .content-placeholder h2 {
+                font-size: 1.2em;
+            }
+            .content-placeholder h3 {
+                font-size: 1em;
+            }
+            .content-placeholder ul li {
+                padding: 6px 10px;
+                font-size: 0.85em;
+            }
+
+            /* Modal adjustments for small screens */
+            .modal-content {
+                width: 95%;
+                padding: 20px 15px;
+                max-height: 95vh;
+            }
+            .modal-content h2 {
+                font-size: 1.4em;
+                margin-bottom: 15px;
+            }
+            .close-button {
+                font-size: 24px;
+                top: 10px;
+                right: 15px;
+            }
+            .notification-item {
+                padding: 12px;
+                font-size: 0.9em;
+                gap: 10px;
+            }
+            .notification-item i {
+                font-size: 1.1em;
+            }
+            .notification-date {
+                font-size: 0.75em;
+            }
+            .modal-footer {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .modal-footer button {
+                width: 100%;
+                padding: 10px;
+                font-size: 0.85em;
+            }
+        }
+
+        /* Small devices (portrait tablets and large phones, 600px to 768px) */
+        @media only screen and (min-width: 601px) and (max-width: 768px) {
+            body {
+                font-size: 0.95rem;
+            }
+
+            .header {
+                padding: 10px 20px;
+            }
+            .app-title {
+                font-size: 1.6em;
+            }
+
+            .nav-bar {
+                padding: 6px 20px;
+            }
+            .nav-bar ul li a {
+                padding: 9px 15px;
+            }
+            .quick-search input {
+                padding: 7px 12px;
+            }
+
+            .workspace {
+                margin: 12px;
+            }
+
+            .tab-content {
+                padding: 20px;
+            }
+
+            .tab-bar {
+                min-height: 42px;
+            }
+            .tab {
+                padding: 9px 18px;
+            }
+
+            .status-bar {
+                padding: 9px 20px;
+                font-size: 0.8em;
+            }
+            /* Modal adjustments for tablets */
+            .modal-content {
+                max-width: 500px;
+                width: 90%;
+            }
+        }
+
+        /* Medium devices (landscape tablets, 769px to 992px) */
+        @media only screen and (min-width: 769px) and (max-width: 992px) {
+            body {
+                font-size: 1rem;
+            }
+        }
+
+        /* Large devices (laptops/desktops, 993px to 1200px) */
+        @media only screen and (min-width: 993px) and (max-width: 1200px) {
+            /* No major adjustments needed as this is the default desktop size */
+        }
+
+        /* Extra large devices (large laptops and desktops, 1201px and up) */
+        @media only screen and (min-width: 1201px) {
+            /* No additional adjustments from base styles */
+        }
+
+    </style>
+    </head>
+    <body>
+
+        <div class="header">
+            <h1 class="app-title">ระบบจัดการสินทรัพย์ถาวร</h1>
+        </div>
+        <nav class="nav-bar">
+            <ul>
+                <li><a href="#">ไฟล์</a>
+                    <div class="dropdown-content">
+                        <a href="#"
+                            onclick="alert('เปิดฟังก์ชัน: เปิด');">เปิด</a>
+                        <a href="#"
+                            onclick="alert('เปิดฟังก์ชัน: บันทึก');">บันทึก</a>
+                        <a href="#"
+                            onclick="alert('เปิดฟังก์ชัน: พิมพ์');">พิมพ์</a>
+                        <a href="#"
+                            onclick="alert('เปิดฟังก์ชัน: ตั้งค่า');">ตั้งค่า</a>
+                        <a href="#"
+                            onclick="alert('เปิดฟังก์ชัน: ออกจากระบบ');">ออกจากระบบ</a>
+                        <a href="#"
+                            onclick="alert('เปิดฟังก์ชัน: ออกจากโปรแกรม');">ออก</a>
+                    </div>
+                </li>
+                <li><a href="#">สินทรัพย์</a>
+                    <div class="dropdown-content">
+                        <a href="#" onclick="openAssetListFloatingWindow(); return false;">รายการสินทรัพย์</a>
+                        <a href="#"
+                            onclick="openTab('asset-new', 'บันทึกสินทรัพย์ใหม่');">บันทึกสินทรัพย์ใหม่</a>
+                        <a href="#"
+                            onclick="openTab('asset-search', 'ค้นหาสินทรัพย์');">ค้นหาสินทรัพย์</a>
+                        <a href="#"
+                            onclick="openTab('asset-status', 'จัดการสถานะสินทรัพย์');">จัดการสถานะสินทรัพย์</a>
+                        <a href="#"
+                            onclick="openTab('asset-transfer', 'โอนย้ายสินทรัพย์');">โอนย้ายสินทรัพย์</a>
+                    </div>
+                </li>
+                <li><a href="#">การเงิน</a>
+                    <div class="dropdown-content">
+                        <a href="#"
+                            onclick="openTab('finance-depreciation', 'คำนวณค่าเสื่อมราคา');">คำนวณค่าเสื่อมราคา</a>
+                        <a href="#"
+                            onclick="openTab('finance-valuation', 'ประเมินมูลค่าสินทรัพย์');">ประเมินมูลค่าสินทรัพย์</a>
+                        <a href="#"
+                            onclick="openTab('finance-disposal', 'จัดการการจำหน่ายสินทรัพย์');">จัดการการจำหน่ายสินทรัพย์</a>
+                    </div>
+                </li>
+                <li><a href="#">ซ่อมบำรุง</a>
+                    <div class="dropdown-content">
+                        <a href="#"
+                            onclick="openTab('maintenance-request', 'บันทึกการแจ้งซ่อม');">บันทึกการแจ้งซ่อม</a>
+                        <a href="#"
+                            onclick="openTab('maintenance-record', 'บันทึกการซ่อมบำรุง');">บันทึกการซ่อมบำรุง</a>
+                        <a href="#"
+                            onclick="openTab('maintenance-history', 'ประวัติการซ่อมบำรุง');">ประวัติการซ่อมบำรุง</a>
+                    </div>
+                </li>
+                <li><a href="#">การรับประกัน</a>
+                    <div class="dropdown-content">
+                        <a href="#"
+                            onclick="openTab('warranty-manage', 'จัดการข้อมูลการรับประกัน');">จัดการข้อมูลการรับประกัน</a>
+                        <a href="#"
+                            onclick="openTab('warranty-claim', 'บันทึก/ติดตามการเคลมประกัน');">บันทึก/ติดตามการเคลมประกัน</a>
+                    </div>
+                </li>
+                <li><a href="#">รายงาน</a>
+                    <div class="dropdown-content">
+                        <a href="#"
+                            onclick="openTab('report-depreciation', 'รายงานค่าเสื่อมราคา');">รายงานค่าเสื่อมราคา</a>
+                        <a href="#"
+                            onclick="openTab('report-inventory', 'รายงานสินทรัพย์คงเหลือ');">รายงานสินทรัพย์คงเหลือ</a>
+                        <a href="#"
+                            onclick="openTab('report-maintenance', 'รายงานซ่อมบำรุง');">รายงานซ่อมบำรุง</a>
+                    </div>
+                </li>
+                <li><a href="#">เครื่องมือ</a>
+                    <div class="dropdown-content">
+                        <a href="#"
+                            onclick="openTab('tools-import', 'นำเข้าข้อมูล');">นำเข้าข้อมูล</a>
+                        <a href="#"
+                            onclick="openTab('tools-export', 'ส่งออกข้อมูล');">ส่งออกข้อมูล</a>
+                        <a href="#"
+                            onclick="openTab('tools-notifications', 'จัดการการแจ้งเตือน');">จัดการการแจ้งเตือน</a>
+                        <a href="#"
+                            onclick="openTab('tools-users', 'จัดการผู้ใช้งานและสิทธิ์');">จัดการผู้ใช้งานและสิทธิ์</a>
+                    </div>
+                </li>
+                <li><a href="#">ช่วยเหลือ</a>
+                    <div class="dropdown-content">
+                        <a href="#"
+                            onclick="alert('เปิดคู่มือการใช้งาน');">คู่มือการใช้งาน</a>
+                        <a href="#"
+                            onclick="alert('แสดงข้อมูลเกี่ยวกับระบบ');">เกี่ยวกับระบบ</a>
+                    </div>
+                </li>
+            </ul>
+            <div class="quick-actions">
+                <div class="quick-search">
+                    <input type="text" placeholder="ค้นหาด่วน...">
+                </div>
+                <div class="notification-icon">
+                    <i class="fas fa-bell"></i><span
+                        id="notificationCount">3</span> </div>
+            </div>
+        </nav>
+        <div class="workspace">
+            <div class="tab-content" id="tabContent">
+                <div class="tab-pane active" id="pane-dashboard">
+                    <div class="content-placeholder">
+                        <h2><i class="fas fa-chart-line"></i>
+                            ยินดีต้อนรับสู่ระบบจัดการสินทรัพย์ถาวร</h2>
+                        <p>ที่นี่คือหน้าหลัก/Dashboard ของคุณ
+                            ที่จะแสดงภาพรวมและข้อมูลสำคัญ</p>
+                        <ul>
+                            <li><i class="fas fa-cubes"></i>
+                                จำนวนสินทรัพย์ทั้งหมด: <strong
+                                    id="assetTotal">542</strong> รายการ</li>
+                            <li><i class="fas fa-calendar-times"></i>
+                                สินทรัพย์ที่ใกล้หมดอายุประกัน: <strong
+                                    id="warrantySoon">3</strong> รายการ</li>
+                            <li><i class="fas fa-wrench"></i>
+                                สินทรัพย์ที่ต้องซ่อมบำรุง: <strong
+                                    id="maintenanceDue">2</strong> รายการ</li>
+                            <li><i class="fas fa-hand-holding-usd"></i>
+                                สรุปค่าเสื่อมราคาประจำเดือน: ฿ <strong
+                                    id="monthlyDepreciation">125,000</strong></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="tab-pane" id="pane-asset-new">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-plus-circle"></i>
+                            แบบฟอร์มบันทึกสินทรัพย์ใหม่</h3>
+                        <p>ฟอร์มสำหรับกรอกข้อมูลสินทรัพย์หลัก, ข้อมูลการได้มา,
+                            การใช้งาน, และเอกสารประกอบ</p>
+                        <p>ตัวอย่าง: ช่องกรอกรหัสสินทรัพย์, ชื่อ, ประเภท,
+                            ผู้ขาย, ราคาทุน, วันที่ซื้อ, วันที่เริ่มใช้งาน,
+                            อายุการใช้งาน, สถานที่ตั้ง, แผนก</p>
+                    </div>
+                </div>
+
+                <div class="tab-pane" id="pane-finance-depreciation">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-calculator"></i>
+                            หน้าจอคำนวณค่าเสื่อมราคา</h3>
+                        <p>เลือกวิธีการคำนวณค่าเสื่อมราคา (เส้นตรง, ลดลงทวีคูณ,
+                            อื่นๆ)</p>
+                        <p>แสดงตารางสินทรัพย์ที่เกี่ยวข้องและผลลัพธ์การคำนวณค่าเสื่อมราคา</p>
+                    </div>
+                </div>
+
+                <div class="tab-pane" id="pane-maintenance-history">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-history"></i>
+                            ประวัติการซ่อมบำรุงขั้นสูง</h3>
+                        <p>แสดงรายการประวัติการซ่อมบำรุงทั้งหมด</p>
+                        <p>ค้นหา, กรองข้อมูล, ดูรายละเอียด (อาการ, สาเหตุ,
+                            วิธีแก้, ค่าใช้จ่าย, อะไหล่, รูปภาพ)</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-asset-search">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-search"></i> ค้นหาสินทรัพย์</h3>
+                        <p>ช่องค้นหาขั้นสูง กรองตามประเภท, แผนก, สถานะ,
+                            ผู้รับผิดชอบ</p>
+                        <p>ตารางแสดงผลลัพธ์การค้นหา</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-asset-status">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-tags"></i>
+                            จัดการสถานะสินทรัพย์</h3>
+                        <p>หน้าจอสำหรับเปลี่ยนสถานะสินทรัพย์ (เช่น ใช้งาน, เสีย,
+                            ซ่อม, จำหน่าย)</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-asset-transfer">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-exchange-alt"></i>
+                            โอนย้ายสินทรัพย์</h3>
+                        <p>ฟอร์มสำหรับบันทึกการโอนย้ายสินทรัพย์ระหว่างแผนกหรือสถานที่</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-finance-valuation">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-chart-pie"></i>
+                            ประเมินมูลค่าสินทรัพย์</h3>
+                        <p>บันทึกและจัดการข้อมูลการประเมินมูลค่าสินทรัพย์ตามวิธีต่างๆ
+                            (ตลาด, ประกัน, ขาย, จำนำ)</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-finance-disposal">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-trash-alt"></i>
+                            จัดการการจำหน่ายสินทรัพย์</h3>
+                        <p>บันทึกรายละเอียดการจำหน่ายสินทรัพย์ (วิธีการ, วันที่,
+                            ราคาขาย) และส่งข้อมูลไปยังระบบบัญชี</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-maintenance-request">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-clipboard-list"></i>
+                            บันทึกการแจ้งซ่อม</h3>
+                        <p>ฟอร์มสำหรับบันทึกข้อมูลการแจ้งซ่อมเบื้องต้น (เช่น
+                            ผู้แจ้ง, อาการ, สินทรัพย์ที่เสีย)</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-maintenance-record">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-tools"></i> บันทึกการซ่อมบำรุง</h3>
+                        <p>บันทึกรายละเอียดการซ่อม (อาการ, สาเหตุ, วิธีแก้ไข,
+                            ค่าใช้จ่าย, อะไหล่ที่ใช้, รูปภาพก่อน-หลังซ่อม)</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-warranty-manage">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-handshake"></i>
+                            จัดการข้อมูลการรับประกัน</h3>
+                        <p>บันทึกรายละเอียดการรับประกันของสินทรัพย์ต่างๆ
+                            (ระยะเวลา, เงื่อนไข, ผู้ให้บริการ, วันหมดอายุ)</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-warranty-claim">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-file-invoice"></i>
+                            บันทึก/ติดตามการเคลมประกัน</h3>
+                        <p>หน้าจอสำหรับการบันทึกและติดตามสถานะการเคลมประกันสินทรัพย์
+                            (แจ้งเคลม, อนุมัติ, ปฏิเสธ,
+                            อยู่ระหว่างดำเนินการ)</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-report-depreciation">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-chart-bar"></i>
+                            รายงานค่าเสื่อมราคา</h3>
+                        <p>แสดงรายงานสรุปค่าเสื่อมราคาตามช่วงเวลาและประเภทสินทรัพย์
+                            (เลือกดูเป็นรายปี, รายเดือน, รายไตรมาส)</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-report-inventory">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-list-alt"></i>
+                            รายงานสินทรัพย์คงเหลือ</h3>
+                        <p>แสดงรายการสินทรัพย์ทั้งหมดที่ยังอยู่ในระบบ
+                            พร้อมรายละเอียด (เช่น มูลค่าตามบัญชี, แผนก,
+                            สถานที่)</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-report-maintenance">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-file-medical"></i>
+                            รายงานซ่อมบำรุง</h3>
+                        <p>สรุปข้อมูลการซ่อมบำรุง (ความถี่ในการเสีย,
+                            ค่าใช้จ่ายรวม, ประสิทธิภาพการซ่อม)
+                            เพื่อวิเคราะห์เชิงลึก</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-tools-import">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-file-import"></i> นำเข้าข้อมูล</h3>
+                        <p>หน้าจอสำหรับนำเข้าข้อมูลสินทรัพย์จากไฟล์ Excel
+                            (พร้อมเทมเพลต
+                            และการตรวจสอบข้อมูลเพื่อลดข้อผิดพลาด)</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-tools-export">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-file-export"></i> ส่งออกข้อมูล</h3>
+                        <p>หน้าจอสำหรับส่งออกข้อมูลสินทรัพย์เป็น Excel/PDF/CSV
+                            (สามารถเลือกคอลัมน์และช่วงข้อมูลได้)</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-tools-notifications">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-bell"></i> จัดการการแจ้งเตือน</h3>
+                        <p>ตั้งค่าประเภทการแจ้งเตือนที่ต้องการ (เช่น
+                            ใกล้หมดประกัน, ค่าเสื่อมครบ), ช่องทางการส่ง (อีเมล,
+                            ในระบบ)</p>
+                    </div>
+                </div>
+                <div class="tab-pane" id="pane-tools-users">
+                    <div class="content-placeholder">
+                        <h3><i class="fas fa-users-cog"></i>
+                            จัดการผู้ใช้งานและสิทธิ์</h3>
+                        <p>เพิ่ม/แก้ไข/ลบผู้ใช้งาน,
+                            กำหนดบทบาทและสิทธิ์การเข้าถึงเมนูต่างๆ ของระบบ</p>
+                    </div>
+                </div>
+
+                <div class="tab-pane" id="pane-notification-history">
+                    <div class="content-placeholder">
+                        <h2><i class="fas fa-history"></i>
+                            ประวัติการแจ้งเตือนทั้งหมด</h2>
+                        <p>หน้านี้จะแสดงรายการการแจ้งเตือนทั้งหมดที่เคยเกิดขึ้นในระบบ</p>
+                        <p>คุณสามารถค้นหา, กรองข้อมูลตามประเภทการแจ้งเตือน,
+                            วันที่, หรือสถานะ (อ่านแล้ว/ยังไม่ได้อ่าน)</p>
+                        <br>
+                        <p><em>(ตัวอย่างรายการแจ้งเตือนในอนาคต)</em></p>
+                        <ul>
+                            <li><i class="fas fa-info-circle"></i> [2025-06-12
+                                14:30] การรับประกันใกล้หมดอายุ: คอมพิวเตอร์พกพา
+                                HP-001</li>
+                            <li><i class="fas fa-info-circle"></i> [2025-06-10
+                                09:00] แจ้งซ่อมที่รอดำเนินการ: เครื่องพิมพ์
+                                Epson L3110</li>
+                            <li><i class="fas fa-info-circle"></i> [2025-06-05
+                                11:00] การเคลื่อนย้ายสินทรัพย์: จอภาพ
+                                Dell-24inch ถูกโอนย้าย</li>
+                            <li><i class="fas fa-info-circle"></i> [2025-06-01
+                                16:00] การซ่อมบำรุงเสร็จสิ้น: เครื่องปรับอากาศ
+                                Samsung</li>
+                            <li><i class="fas fa-info-circle"></i> [2025-05-28
+                                10:00] การบำรุงรักษาเชิงป้องกัน:
+                                รถยนต์บริษัท</li>
+                            <li><i class="fas fa-info-circle"></i> [2025-05-20
+                                15:00] อัปเดตข้อมูลสินทรัพย์:
+                                โต๊ะทำงานไม้สัก</li>
+                        </ul>
+                        <p>สามารถเพิ่มฟังก์ชันการค้นหาและกรองข้อมูลในอนาคต</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-bar" id="tabBar">
+                <div class="tab active" data-tab-id="dashboard">
+                    <span>หน้าหลัก (Dashboard)</span>
+                </div>
+                <div class="tab add-tab" onclick="alert('เปิดเมนูใหม่');">
+                    <i class="fas fa-plus"></i>
+                </div>
+            </div>
+        </div>
+        <div class="status-bar">
+            <span class="status-info"><i class="fas fa-check-circle"></i> สถานะ:
+                พร้อมใช้งาน</span>
+            <span class="user-info"><i class="fas fa-user"></i> ผู้ใช้งาน:
+                Admin</span>
+            <span class="datetime-info" id="currentDateTime"><i
+                    class="fas fa-clock"></i></span>
+        </div>
+        <div id="notificationModal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">&times;</span>
+                <h2><i class="fas fa-bell"></i> การแจ้งเตือน</h2>
+                <div class="notification-list">
+                    <div class="notification-item unread">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <div class="notification-text">
+                            <strong>การรับประกันใกล้หมดอายุ:</strong> สินทรัพย์
+                            "คอมพิวเตอร์พกพา HP-001" จะหมดประกันในวันที่ 30
+                            มิ.ย. 2568
+                            <span class="notification-date">วันนี้ 14:30
+                                น.</span>
+                        </div>
+                    </div>
+                    <div class="notification-item unread">
+                        <i class="fas fa-wrench"></i>
+                        <div class="notification-text">
+                            <strong>แจ้งซ่อมที่รอดำเนินการ:</strong> สินทรัพย์
+                            "เครื่องพิมพ์ Epson L3110" มีการแจ้งซ่อมใหม่ (ID:
+                            20250610-001)
+                            <span class="notification-date">10 มิ.ย. 2568 09:00
+                                น.</span>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <i class="fas fa-box-open"></i>
+                        <div class="notification-text">
+                            <strong>การเคลื่อนย้ายสินทรัพย์:</strong> สินทรัพย์
+                            "จอภาพ Dell-24inch" ถูกโอนย้ายไปแผนกบัญชี
+                            <span class="notification-date">05 มิ.ย. 2568 11:00
+                                น.</span>
+                        </div>
+                    </div>
+                    <div class="notification-item">
+                        <i class="fas fa-check-circle"></i>
+                        <div class="notification-text">
+                            <strong>การซ่อมบำรุงเสร็จสิ้น:</strong> สินทรัพย์
+                            "เครื่องปรับอากาศ Samsung" ซ่อมเสร็จแล้ว
+                            <span class="notification-date">01 มิ.ย. 2568 16:00
+                                น.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button
+                        class="mark-all-read-button">ทำเครื่องหมายว่าอ่านแล้วทั้งหมด</button>
+                    <button class="view-all-button">ดูทั้งหมด</button>
+                </div>
+            </div>
+        </div>
+
+           <div id="assetListFloatingWindow">
+    <div class="header-draggable">
+        <h3 id="assetListWindowTitle">รายการสินทรัพย์</h3>
+        <div class="window-controls">
+            <span class="minimize-btn" onclick="minimizeAssetList()"><i class="fas fa-minus"></i></span>
+            <span class="maximize-btn" onclick="toggleMaximizeAssetList()"><i class="fas fa-expand-arrows-alt"></i></span>
+            <span class="close-btn" onclick="closeAssetListFloatingWindow()"><i class="fas fa-times"></i></span>
+        </div>
+    </div>
+    <div class="window-content" id="assetListContent">
+        <p style="text-align: center; padding-top: 20px;">กำลังโหลดรายการสินทรัพย์...</p>
+    </div>
+    <div class="resize-handle top-left"></div>
+    <div class="resize-handle top-right"></div>
+    <div class="resize-handle bottom-left"></div>
+    <div class="resize-handle bottom-right"></div>
+    <div class="resize-handle top"></div>
+    <div class="resize-handle bottom"></div>
+    <div class="resize-handle left"></div>
+    <div class="resize-handle right"></div>
+</div>
+
+<div class="taskbar-like-area" id="taskbarLikeArea">
+    </div>
+        <script>
+        const tabBar = document.getElementById('tabBar');
+        const tabContent = document.getElementById('tabContent');
+        const notificationCountSpan = document.getElementById('notificationCount');
+        
+        // ฟังก์ชันสำหรับเปิดแท็บใหม่
+        function openTab(tabId, tabName) {
+            // ตรวจสอบว่าแท็บนั้นเปิดอยู่แล้วหรือไม่
+            const existingTab = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+            if (existingTab) {
+                // ถ้ามีอยู่แล้ว ให้ activate แท็บนั้นแทน
+                activateTab(tabId);
+                return;
+            }
+
+            // ซ่อนแท็บและเนื้อหาที่ active อยู่ก่อนหน้า
+            document.querySelectorAll('.tab.active').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-pane.active').forEach(pane => pane.classList.remove('active'));
+
+            // สร้างแท็บใหม่
+            const newTab = document.createElement('div');
+            newTab.classList.add('tab');
+            newTab.classList.add('active');
+            newTab.dataset.tabId = tabId;
+            newTab.innerHTML = `<span>${tabName}</span><i class="fas fa-times close-tab" onclick="closeTab(event, '${tabId}')"></i>`;
+            
+            // แทรกแท็บใหม่ก่อนปุ่ม "+"
+            tabBar.insertBefore(newTab, document.querySelector('.add-tab'));
+
+            // สร้างเนื้อหาสำหรับแท็บใหม่ (ถ้ายังไม่มีใน HTML)
+            // หรือคุณอาจจะโหลดเนื้อหาจากไฟล์อื่น/API ในอนาคต
+            let newPane = document.getElementById(`pane-${tabId}`);
+            if (!newPane) {
+                newPane = document.createElement('div');
+                newPane.classList.add('tab-pane');
+                newPane.id = `pane-${tabId}`;
+                // ใช้ HTML ที่คุณต้องการสำหรับแท็บใหม่
+                newPane.innerHTML = `<div class="content-placeholder"><h3>หน้าจอสำหรับ ${tabName}</h3><p>เนื้อหาของ ${tabName} จะแสดงที่นี่</p></div>`;
+                tabContent.appendChild(newPane);
+            }
+            newPane.classList.add('active');
+
+            // เพิ่ม Event Listener สำหรับการคลิกแท็บ (หลังจากสร้างแท็บ)
+            newTab.addEventListener('click', () => activateTab(tabId));
+
+            // เลื่อนไปที่แท็บที่เพิ่งเปิดใหม่ (ถ้ามี scrollbar)
+            newTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        }
+
+        // ฟังก์ชันสำหรับสลับแท็บ
+        function activateTab(tabId) {
+            document.querySelectorAll('.tab.active').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-pane.active').forEach(pane => pane.classList.remove('active'));
+
+            document.querySelector(`.tab[data-tab-id="${tabId}"]`).classList.add('active');
+            document.getElementById(`pane-${tabId}`).classList.add('active');
+
+            // เลื่อนไปที่แท็บที่ active (ถ้ามี scrollbar)
+            document.querySelector(`.tab[data-tab-id="${tabId}"]`).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        }
+
+        // ฟังก์ชันสำหรับปิดแท็บ
+        function closeTab(event, tabId) {
+            event.stopPropagation(); // หยุดการ propagate เพื่อไม่ให้ activate แท็บเมื่อกด X
+
+            const tabToClose = document.querySelector(`.tab[data-tab-id="${tabId}"]`);
+            const paneToClose = document.getElementById(`pane-${tabId}`);
+
+            if (tabToClose && paneToClose) {
+                const isActive = tabToClose.classList.contains('active');
+                tabBar.removeChild(tabToClose);
+                tabContent.removeChild(paneToClose);
+
+                // ถ้าแท็บที่ปิดเป็นแท็บที่ active อยู่ ให้ activate แท็บแรกที่เหลืออยู่
+                if (isActive) {
+                    const firstRemainingTab = document.querySelector('.tab');
+                    if (firstRemainingTab) {
+                        activateTab(firstRemainingTab.dataset.tabId);
+                    }
+                }
+            }
+        }
+
+        // อัปเดตเวลาปัจจุบันใน Status Bar
+        function updateDateTime() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            document.getElementById('currentDateTime').innerHTML = `<i class="fas fa-clock"></i> ${now.toLocaleDateString('th-TH', options)}`;
+        }
+
+        // เรียกอัปเดตเวลาทุกวินาที
+        setInterval(updateDateTime, 1000);
+        updateDateTime(); // เรียกครั้งแรกเมื่อโหลดหน้า
+        
+        // เมื่อโหลดหน้าเว็บ ให้เปิดแท็บ Dashboard เป็นค่าเริ่มต้น
+        document.addEventListener('DOMContentLoaded', () => {
+            // activateTab('dashboard'); // Dashboard is already set as active in HTML
+        });
+
+
+        // =================================================
+        // JavaScript สำหรับ Modal แจ้งเตือน
+        // =================================================
+
+        // Get the modal element
+        const notificationModal = document.getElementById('notificationModal');
+
+        // Get the notification bell icon (button that opens the modal)
+        const notificationIcon = document.querySelector('.notification-icon');
+
+        // Get the <span> element that closes the modal (the 'x' button)
+        const closeButton = document.querySelector('.modal .close-button');
+
+        // When the user clicks the notification icon, open the modal
+        notificationIcon.onclick = function() {
+            notificationModal.style.display = 'flex'; // Use flex to center the modal
+        }
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function() {
+            notificationModal.style.display = 'none';
+        }
+
+        // When the user clicks anywhere outside of the modal content, close it
+        window.onclick = function(event) {
+            if (event.target == notificationModal) {
+                notificationModal.style.display = 'none';
+            }
+        }
+
+        // Example: Mark all notifications as read (for demo purpose)
+        document.querySelector('.mark-all-read-button').onclick = function() {
+            document.querySelectorAll('.notification-item.unread').forEach(item => {
+                item.classList.remove('unread');
+            });
+            // Reset notification count (for demo)
+            notificationCountSpan.textContent = '0'; // Update the actual count
+            alert('ทำเครื่องหมายว่าอ่านแล้วทั้งหมด!');
+        }
+
+        // Example: View all notifications (for demo purpose)
+        document.querySelector('.view-all-button').onclick = function() {
+            alert('กำลังเปิดหน้าประวัติการแจ้งเตือน...');
+            notificationModal.style.display = 'none'; // Close the modal
+            openTab('notification-history', 'ประวัติการแจ้งเตือน'); // Open the specific tab
+        }
+// --- Floating Window Logic for Asset List ---
+const assetListFloatingWindow = document.getElementById('assetListFloatingWindow');
+const assetListHeader = assetListFloatingWindow.querySelector('.header-draggable');
+const assetListContent = assetListFloatingWindow.querySelector('.window-content');
+const minimizeAssetListBtn = assetListFloatingWindow.querySelector('.minimize-btn');
+const maximizeAssetListBtn = assetListFloatingWindow.querySelector('.maximize-btn');
+const closeAssetListBtn = assetListFloatingWindow.querySelector('.close-btn');
+const taskbarLikeArea = document.getElementById('taskbarLikeArea');
+
+let isDragging = false;
+let offsetX, offsetY;
+let isMaximized = false;
+let originalWindowRect = {}; // เก็บตำแหน่งและขนาดเดิมก่อน maximize
+
+// Function to update the visibility of the taskbar
+function updateTaskbarDisplay() {
+    // Check if there are any minimized window icons in the taskbar
+    if (taskbarLikeArea.children.length > 0) {
+        taskbarLikeArea.style.display = 'flex'; // Show taskbar
+    } else {
+        taskbarLikeArea.style.display = 'none'; // Hide taskbar
+    }
+}
+
+// Function to open the Floating Window and load content
+function openAssetListFloatingWindow() {
+    assetListFloatingWindow.style.display = 'flex'; // Use flex for column layout
+    assetListFloatingWindow.style.zIndex = 2000; // Ensure it's on top when opened
+
+    // If window was minimized, restore it to its last position/size, otherwise center it
+    const existingIcon = document.getElementById('minimized-asset-list-icon');
+    if (existingIcon) {
+        taskbarLikeArea.removeChild(existingIcon); // Remove icon from taskbar
+        updateTaskbarDisplay(); // Update taskbar visibility
+        // Restore to original size/position if it was previously maximized or had a custom size
+        if (isMaximized) {
+            toggleMaximizeAssetList(); // This will restore it from maximized state
+        } else if (originalWindowRect.width && originalWindowRect.height) {
+            assetListFloatingWindow.style.top = originalWindowRect.top + 'px';
+            assetListFloatingWindow.style.left = originalWindowRect.left + 'px';
+            assetListFloatingWindow.style.width = originalWindowRect.width + 'px';
+            assetListFloatingWindow.style.height = originalWindowRect.height + 'px';
+            assetListFloatingWindow.style.transform = 'none';
+        } else {
+            // If no previous state, center it
+            assetListFloatingWindow.style.top = '50%';
+            assetListFloatingWindow.style.left = '50%';
+            assetListFloatingWindow.style.transform = 'translate(-50%, -50%)';
+        }
+    } else {
+        // If opening for the first time or not from minimized, center it
+        assetListFloatingWindow.style.top = '50%';
+        assetListFloatingWindow.style.left = '50%';
+        assetListFloatingWindow.style.transform = 'translate(-50%, -50%)';
+        // Ensure it's not in a maximized state if opened fresh
+        if (isMaximized) {
+            toggleMaximizeAssetList(); // Reset from maximized
+        }
+    }
+
+    // Load content from asset_list.html using Fetch API (same as before)
+    fetch('asset_list.html')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(data => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(data, 'text/html');
+            const bodyContent = doc.body.innerHTML;
+            
+            assetListContent.innerHTML = bodyContent;
+            
+            const scripts = assetListContent.querySelectorAll('script');
+            scripts.forEach(oldScript => {
+                const newScript = document.createElement('script');
+                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                newScript.textContent = oldScript.textContent;
+                if (oldScript.parentNode) {
+                    oldScript.parentNode.removeChild(oldScript); 
+                }
+                assetListContent.appendChild(newScript);
+            });
+        })
+        .catch(error => {
+            assetListContent.innerHTML = '<p style="color: red; text-align: center;">ไม่สามารถโหลดรายการสินทรัพย์ได้: ' + error.message + '</p>';
+            console.error('Error loading asset list:', error);
+        });
+}
+
+// Function to close Floating Window
+function closeAssetListFloatingWindow() {
+    assetListFloatingWindow.style.display = 'none';
+    // Remove from taskbar if it was minimized
+    const existingIcon = document.getElementById('minimized-asset-list-icon');
+    if (existingIcon) {
+        taskbarLikeArea.removeChild(existingIcon);
+        updateTaskbarDisplay(); // Update taskbar visibility
+    }
+    isMaximized = false; // Reset maximize state
+}
+
+// Function to minimize Floating Window
+function minimizeAssetList() {
+    // Save current position and size BEFORE hiding
+    originalWindowRect = assetListFloatingWindow.getBoundingClientRect();
+    assetListFloatingWindow.style.display = 'none'; // Hide the window
+
+    // Check if icon already exists in taskbar
+    let minimizedIcon = document.getElementById('minimized-asset-list-icon');
+    if (!minimizedIcon) {
+        minimizedIcon = document.createElement('div');
+        minimizedIcon.id = 'minimized-asset-list-icon';
+        minimizedIcon.classList.add('minimized-window-icon');
+        minimizedIcon.innerHTML = '<i class="fas fa-list"></i> รายการสินทรัพย์';
+        minimizedIcon.onclick = openAssetListFloatingWindow; // Click to restore
+        taskbarLikeArea.appendChild(minimizedIcon);
+    }
+    updateTaskbarDisplay(); // Show taskbar as there's a minimized window
+}
+
+// Function to maximize/restore Floating Window (no change here from previous)
+function toggleMaximizeAssetList() {
+    if (isMaximized) {
+        // Restore to original size and position
+        assetListFloatingWindow.style.top = originalWindowRect.top + 'px';
+        assetListFloatingWindow.style.left = originalWindowRect.left + 'px';
+        assetListFloatingWindow.style.width = originalWindowRect.width + 'px';
+        assetListFloatingWindow.style.height = originalWindowRect.height + 'px';
+        assetListFloatingWindow.style.transform = 'none'; // Remove translate
+        maximizeAssetListBtn.innerHTML = '<i class="fas fa-expand-arrows-alt"></i>'; // Change icon back to expand
+        isMaximized = false;
+    } else {
+        // Save current position and size
+        originalWindowRect = assetListFloatingWindow.getBoundingClientRect();
+        
+        // Maximize to full viewport (accounting for header/footer if needed, but for now full screen)
+        assetListFloatingWindow.style.top = '0';
+        assetListFloatingWindow.style.left = '0';
+        assetListFloatingWindow.style.width = '100%';
+        assetListFloatingWindow.style.height = '100%';
+        assetListFloatingWindow.style.transform = 'none'; // Remove translate
+        maximizeAssetListBtn.innerHTML = '<i class="fas fa-compress-arrows-alt"></i>'; // Change icon to compress
+        isMaximized = true;
+    }
+}
+
+
+// --- Dragging functionality (no change here from previous) ---
+assetListHeader.addEventListener('mousedown', (e) => {
+    if (isMaximized) return; // Prevent dragging when maximized
+    isDragging = true;
+    offsetX = e.clientX - assetListFloatingWindow.getBoundingClientRect().left;
+    offsetY = e.clientY - assetListFloatingWindow.getBoundingClientRect().top;
+    assetListFloatingWindow.style.cursor = 'grabbing';
+    // Bring to front when dragging
+    assetListFloatingWindow.style.zIndex = 2001;
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    assetListFloatingWindow.style.left = e.clientX - offsetX + 'px';
+    assetListFloatingWindow.style.top = e.clientY - offsetY + 'px';
+});
+
+document.addEventListener('mouseup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    assetListFloatingWindow.style.cursor = 'grab';
+    assetListFloatingWindow.style.zIndex = 2000; // Reset z-index
+});
+
+// --- Resizing functionality (no change here from previous) ---
+const resizeHandles = assetListFloatingWindow.querySelectorAll('.resize-handle');
+let isResizing = false;
+let currentHandle = null;
+
+resizeHandles.forEach(handle => {
+    handle.addEventListener('mousedown', (e) => {
+        e.stopPropagation(); // Prevent dragging when resizing
+        isResizing = true;
+        currentHandle = handle;
+        offsetX = e.clientX;
+        offsetY = e.clientY;
+        originalWindowRect = assetListFloatingWindow.getBoundingClientRect(); // Get initial size/pos
+        assetListFloatingWindow.style.zIndex = 2001; // Bring to front when resizing
+    });
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+
+    let newWidth = originalWindowRect.width;
+    let newHeight = originalWindowRect.height;
+    let newLeft = originalWindowRect.left;
+    let newTop = originalWindowRect.top;
+
+    const dx = e.clientX - offsetX;
+    const dy = e.clientY - offsetY;
+
+    if (currentHandle.classList.contains('right')) {
+        newWidth = originalWindowRect.width + dx;
+    }
+    if (currentHandle.classList.contains('bottom')) {
+        newHeight = originalWindowRect.height + dy;
+    }
+    if (currentHandle.classList.contains('left')) {
+        newWidth = originalWindowRect.width - dx;
+        newLeft = originalWindowRect.left + dx;
+    }
+    if (currentHandle.classList.contains('top')) {
+        newHeight = originalWindowRect.height - dy;
+        newTop = originalWindowRect.top + dy;
+    }
+    if (currentHandle.classList.contains('top-left')) {
+        newWidth = originalWindowRect.width - dx;
+        newLeft = originalWindowRect.left + dx;
+        newHeight = originalWindowRect.height - dy;
+        newTop = originalWindowRect.top + dy;
+    }
+    if (currentHandle.classList.contains('top-right')) {
+        newWidth = originalWindowRect.width + dx;
+        newHeight = originalWindowRect.height - dy;
+        newTop = originalWindowRect.top + dy;
+    }
+    if (currentHandle.classList.contains('bottom-left')) {
+        newWidth = originalWindowRect.width - dx;
+        newLeft = originalWindowRect.left + dx;
+        newHeight = originalWindowRect.height + dy;
+    }
+    if (currentHandle.classList.contains('bottom-right')) {
+        newWidth = originalWindowRect.width + dx;
+        newHeight = originalWindowRect.height + dy;
+    }
+
+    // Apply minimum size to prevent shrinking to zero
+    const minWidth = 300;
+    const minHeight = 200;
+
+    if (newWidth > minWidth) {
+        assetListFloatingWindow.style.width = newWidth + 'px';
+        assetListFloatingWindow.style.left = newLeft + 'px';
+    }
+    if (newHeight > minHeight) {
+        assetListFloatingWindow.style.height = newHeight + 'px';
+        assetListFloatingWindow.style.top = newTop + 'px';
+    }
+});
+
+document.addEventListener('mouseup', () => {
+    if (!isResizing) return;
+    isResizing = false;
+    currentHandle = null;
+    assetListFloatingWindow.style.zIndex = 2000; // Reset z-index
+});
+
+// Initial call to hide taskbar if no windows are minimized
+updateTaskbarDisplay();
+// Optional: Close Floating Window when clicking outside it (similar to modal)
+/*
+window.addEventListener('click', (event) => {
+    if (event.target === assetListFloatingWindow && assetListFloatingWindow.style.display === 'flex') {
+        closeAssetListFloatingWindow();
+    }
+});
+*/
+    </script>
+
+
+
+    </body>
+</html>

@@ -1,0 +1,301 @@
+<style>
+    /* CSS เฉพาะสำหรับตารางการแจ้งเตือนในหน้านี้ */
+    .notification-history-container {
+        padding: 20px;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        height: 100%; /* ให้เต็มความสูงของ tab-pane */
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .notification-history-container h2 {
+        color: #457b9d;
+        margin-top: 0;
+        margin-bottom: 25px;
+        font-size: 1.8em;
+        font-weight: 600;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .notification-history-container h2 i {
+        font-size: 1.1em;
+    }
+
+    .notification-filters {
+        margin-bottom: 20px;
+        display: flex;
+        flex-wrap: wrap; /* allow wrapping on small screens */
+        gap: 15px; /* space between filter elements */
+        align-items: center;
+        background-color: #f8f8f8;
+        padding: 15px;
+        border-radius: 6px;
+        border: 1px solid #eee;
+    }
+
+    .notification-filters label {
+        font-weight: 500;
+        color: #555;
+        flex-shrink: 0;
+    }
+
+    .notification-filters input[type="text"],
+    .notification-filters select,
+    .notification-filters input[type="date"] {
+        padding: 10px 15px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 0.95em;
+        outline: none;
+        flex-grow: 1; /* Allow inputs to grow */
+        max-width: 250px; /* Max width for input fields */
+    }
+
+    .notification-filters input[type="text"]:focus,
+    .notification-filters select:focus,
+    .notification-filters input[type="date"]:focus {
+        border-color: #457b9d;
+        box-shadow: 0 0 5px rgba(69, 123, 157, 0.3);
+    }
+
+    .notification-table-wrapper {
+        flex-grow: 1;
+        overflow-y: auto; /* Enable scrolling for the table */
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        box-shadow: inset 0 0 8px rgba(0,0,0,0.02);
+    }
+
+    .notification-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.95em;
+        color: #333;
+    }
+
+    .notification-table th,
+    .notification-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+
+    .notification-table th {
+        background-color: #f1faee;
+        color: #457b9d;
+        font-weight: 600;
+        position: sticky; /* Make header sticky when scrolling */
+        top: 0;
+        z-index: 1;
+        white-space: nowrap; /* Prevent column headers from wrapping */
+    }
+
+    .notification-table tbody tr:hover {
+        background-color: #f9fbfd;
+    }
+
+    .notification-table td i {
+        margin-right: 8px;
+        color: #666;
+    }
+
+    /* Icon specific colors */
+    .notification-table td .fa-exclamation-circle { color: #e74c3c; } /* Red for critical/warning */
+    .notification-table td .fa-wrench { color: #f39c12; } /* Orange for maintenance */
+    .notification-table td .fa-box-open { color: #3498db; } /* Blue for asset movement */
+    .notification-table td .fa-check-circle { color: #27ae60; } /* Green for complete */
+    .notification-table td .fa-info-circle { color: #95a5a6; } /* Grey for general info */
+
+    .notification-table .status-read {
+        color: #888;
+        font-style: italic;
+    }
+
+    .notification-table .status-unread {
+        font-weight: bold;
+        color: #333;
+    }
+
+    /* Responsive adjustments for table */
+    @media only screen and (max-width: 768px) {
+        .notification-history-container {
+            padding: 10px;
+        }
+        .notification-history-container h2 {
+            font-size: 1.5em;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .notification-filters {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            padding: 10px;
+        }
+        .notification-filters input[type="text"],
+        .notification-filters select,
+        .notification-filters input[type="date"] {
+            max-width: 100%; /* Full width on small screens */
+            font-size: 0.9em;
+            padding: 8px 10px;
+        }
+
+        .notification-table th,
+        .notification-table td {
+            padding: 8px 10px;
+            font-size: 0.85em;
+            white-space: normal; /* Allow text to wrap in cells */
+        }
+
+        /* Hide some columns on small screens if necessary */
+        .notification-table th:nth-child(4), /* Type */
+        .notification-table td:nth-child(4) {
+            display: none;
+        }
+    }
+</style>
+
+<div class="notification-history-container">
+    <h2><i class="fas fa-history"></i> ประวัติการแจ้งเตือน</h2>
+
+    <div class="notification-filters">
+        <label for="filterKeyword">ค้นหา:</label>
+        <input type="text" id="filterKeyword" placeholder="รหัส, รายละเอียด, ผู้แจ้ง">
+
+        <label for="filterType">ประเภท:</label>
+        <select id="filterType">
+            <option value="">ทั้งหมด</option>
+            <option value="warranty">การรับประกัน</option>
+            <option value="maintenance">ซ่อมบำรุง</option>
+            <option value="asset_movement">การเคลื่อนย้ายสินทรัพย์</option>
+            <option value="asset_update">อัปเดตข้อมูลสินทรัพย์</option>
+            <option value="system">ระบบ</option>
+        </select>
+
+        <label for="filterStatus">สถานะ:</label>
+        <select id="filterStatus">
+            <option value="">ทั้งหมด</option>
+            <option value="unread">ยังไม่ได้อ่าน</option>
+            <option value="read">อ่านแล้ว</option>
+        </select>
+        
+        <label for="filterDateFrom">จากวันที่:</label>
+        <input type="date" id="filterDateFrom">
+
+        <label for="filterDateTo">ถึงวันที่:</label>
+        <input type="date" id="filterDateTo">
+    </div>
+
+    <div class="notification-table-wrapper">
+        <table class="notification-table">
+            <thead>
+                <tr>
+                    <th><i class="fas fa-calendar-alt"></i> วันที่/เวลา</th>
+                    <th><i class="fas fa-bookmark"></i> สถานะ</th>
+                    <th><i class="fas fa-clipboard-list"></i> รายละเอียด</th>
+                    <th><i class="fas fa-tag"></i> ประเภท</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="notification-item-row unread" data-type="warranty">
+                    <td>2025-06-12 14:30:00</td>
+                    <td class="status-unread">ยังไม่ได้อ่าน</td>
+                    <td><i class="fas fa-exclamation-circle"></i> <strong>การรับประกันใกล้หมดอายุ:</strong> สินทรัพย์ "คอมพิวเตอร์พกพา HP-001" จะหมดประกันในวันที่ 30 มิ.ย. 2568</td>
+                    <td>การรับประกัน</td>
+                </tr>
+                <tr class="notification-item-row unread" data-type="maintenance">
+                    <td>2025-06-10 09:00:00</td>
+                    <td class="status-unread">ยังไม่ได้อ่าน</td>
+                    <td><i class="fas fa-wrench"></i> <strong>แจ้งซ่อมที่รอดำเนินการ:</strong> สินทรัพย์ "เครื่องพิมพ์ Epson L3110" มีการแจ้งซ่อมใหม่ (ID: 20250610-001)</td>
+                    <td>ซ่อมบำรุง</td>
+                </tr>
+                <tr class="notification-item-row read" data-type="asset_movement">
+                    <td>2025-06-05 11:00:00</td>
+                    <td class="status-read">อ่านแล้ว</td>
+                    <td><i class="fas fa-box-open"></i> <strong>การเคลื่อนย้ายสินทรัพย์:</strong> สินทรัพย์ "จอภาพ Dell-24inch" ถูกโอนย้ายไปแผนกบัญชี</td>
+                    <td>การเคลื่อนย้ายสินทรัพย์</td>
+                </tr>
+                <tr class="notification-item-row read" data-type="maintenance">
+                    <td>2025-06-01 16:00:00</td>
+                    <td class="status-read">อ่านแล้ว</td>
+                    <td><i class="fas fa-check-circle"></i> <strong>การซ่อมบำรุงเสร็จสิ้น:</strong> สินทรัพย์ "เครื่องปรับอากาศ Samsung" ซ่อมเสร็จแล้ว</td>
+                    <td>ซ่อมบำรุง</td>
+                </tr>
+                <tr class="notification-item-row read" data-type="maintenance">
+                    <td>2025-05-28 10:00:00</td>
+                    <td class="status-read">อ่านแล้ว</td>
+                    <td><i class="fas fa-info-circle"></i> <strong>การบำรุงรักษาเชิงป้องกัน:</strong> รถยนต์บริษัท ถึงกำหนดบำรุงรักษาตามแผน</td>
+                    <td>ซ่อมบำรุง</td>
+                </tr>
+                 <tr class="notification-item-row read" data-type="asset_update">
+                    <td>2025-05-20 15:00:00</td>
+                    <td class="status-read">อ่านแล้ว</td>
+                    <td><i class="fas fa-info-circle"></i> <strong>อัปเดตข้อมูลสินทรัพย์:</strong> รายละเอียดของ "โต๊ะทำงานไม้สัก" ได้รับการแก้ไข</td>
+                    <td>อัปเดตข้อมูลสินทรัพย์</td>
+                </tr>
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // ส่วนของ JavaScript สำหรับหน้านี้ (ถ้ามี)
+    // ในอนาคตคุณอาจจะเพิ่มโค้ด JavaScript สำหรับ:
+    // 1. โหลดข้อมูลการแจ้งเตือนจาก API
+    // 2. ฟังก์ชันการค้นหาและกรองข้อมูลในตาราง
+    // 3. การจัดการ Pagination (แบ่งหน้า)
+    // 4. การทำเครื่องหมายว่าอ่านแล้ว/ยังไม่ได้อ่าน
+
+    // ตัวอย่างฟังก์ชันกรองข้อมูล (คุณสามารถขยายเพิ่มได้)
+    function filterNotifications() {
+        const keyword = document.getElementById('filterKeyword').value.toLowerCase();
+        const type = document.getElementById('filterType').value;
+        const status = document.getElementById('filterStatus').value;
+        const dateFrom = document.getElementById('filterDateFrom').value;
+        const dateTo = document.getElementById('filterDateTo').value;
+
+        const rows = document.querySelectorAll('.notification-item-row');
+
+        rows.forEach(row => {
+            const rowText = row.innerText.toLowerCase();
+            const rowType = row.dataset.type;
+            const rowStatus = row.classList.contains('unread') ? 'unread' : 'read';
+            const rowDate = row.children[0].innerText.split(' ')[0]; // Assumes date is first column
+
+            let showRow = true;
+
+            if (keyword && !rowText.includes(keyword)) {
+                showRow = false;
+            }
+            if (type && rowType !== type) {
+                showRow = false;
+            }
+            if (status && rowStatus !== status) {
+                showRow = false;
+            }
+            if (dateFrom && rowDate < dateFrom) {
+                showRow = false;
+            }
+            if (dateTo && rowDate > dateTo) {
+                showRow = false;
+            }
+
+            row.style.display = showRow ? '' : 'none';
+        });
+    }
+
+    // Add event listeners to filter inputs
+    document.getElementById('filterKeyword').addEventListener('keyup', filterNotifications);
+    document.getElementById('filterType').addEventListener('change', filterNotifications);
+    document.getElementById('filterStatus').addEventListener('change', filterNotifications);
+    document.getElementById('filterDateFrom').addEventListener('change', filterNotifications);
+    document.getElementById('filterDateTo').addEventListener('change', filterNotifications);
+
+</script>

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>บันทึกสินทรัพย์ใหม่</title>
+    </head>
+<body>
+    <style>
+        /* CSS เฉพาะสำหรับหน้านี้ (ถ้ามี) หรือปรับจาก global styles */
+        .asset-form-container {
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            height: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* Enable scrolling for the form content if it overflows */
+        }
+
+        /* ================================================= */
+        /* NEW: Master Collapse/Expand Styles */
+        /* ================================================= */
+        .master-collapsible-header {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center; /* จัดให้อยู่ตรงกลาง */
+            gap: 15px;
+            margin-top: 0; /* ตรวจสอบให้ไม่มี margin-top เกินมา */
+            margin-bottom: 25px; /* เว้นระยะห่างจากเนื้อหาฟอร์ม */
+            font-size: 1.8em; /* ขนาดฟอนต์ตาม h2 เดิม */
+            font-weight: 600; /* น้ำหนักฟอนต์ตาม h2 เดิม */
+            color: #457b9d; /* สีตาม h2 เดิม */
+            user-select: none;
+        }
+
+        .master-collapsible-header i {
+            font-size: 1.1em; /* ขนาดไอคอนหลัก */
+        }
+
+        .master-collapsible-header .master-collapse-icon {
+            transition: transform 0.3s ease;
+            font-size: 0.9em; /* ขนาดไอคอนยุบ/ขยาย */
+            color: #777;
+            margin-left: 10px; /* เพิ่มระยะห่างจากข้อความ */
+        }
+
+        /* หมุนไอคอนเมื่อเนื้อหายุบ (เริ่มต้นชี้ขึ้น = เปิดอยู่) */
+        .master-collapsible-header.collapsed .master-collapse-icon {
+            transform: rotate(180deg); /* ชี้ลงเมื่อยุบ */
+        }
+
+        .master-collapsible-content {
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, opacity 0.5s ease-out;
+            max-height: 2000px; /* ค่าเริ่มต้นที่ใหญ่พอสำหรับเนื้อหาฟอร์มทั้งหมดที่เปิดอยู่ */
+            opacity: 1;
+            flex-grow: 1; /* ให้เนื้อหาหลักยืดหยุ่น */
+            display: flex; /* เพื่อให้ form-section จัดเรียงได้ */
+            flex-direction: column;
+        }
+
+        .master-collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+
+        /* ================================================= */
+        /* Section Collapse/Expand Styles (จากคำตอบก่อนหน้า) */
+        /* ================================================= */
+        .form-section {
+            background-color: #f8f8f8;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 20px 20px 5px 20px; /* ปรับ padding ด้านล่างให้เหลือที่สำหรับ form-actions */
+            margin-bottom: 20px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+        }
+        .form-section:last-of-type {
+            margin-bottom: 0; /* ลบ margin-bottom ของส่วนสุดท้ายก่อน form-actions */
+        }
+
+        .collapsible-header {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between; /* จัดให้ไอคอนไปอยู่ทางขวา */
+            padding-bottom: 10px;
+            border-bottom: 2px solid #a8dadc;
+            margin-top: 0; /* ไม่ให้มี margin-top จาก h3 เดิม */
+            margin-bottom: 20px; /* ใช้ margin-bottom เดิมของ h3 */
+            user-select: none; /* Prevent text selection on click */
+        }
+
+        .collapsible-header h3 {
+            margin: 0; /* ลบ margin เดิมของ h3 ออกไป */
+            padding: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #555; /* สีข้อความ header */
+            font-size: 1.3em; /* ขนาดฟอนต์ตาม h3 เดิม */
+        }
+
+        .collapsible-header .collapse-icon {
+            transition: transform 0.3s ease;
+            font-size: 0.9em;
+            color: #777;
+        }
+
+        /* หมุนไอคอนเมื่อเนื้อหายุบ (เริ่มต้นชี้ลง) */
+        .collapsible-header.collapsed .collapse-icon {
+            transform: rotate(-90deg); /* ชี้ไปทางซ้ายเมื่อยุบ */
+        }
+
+        .collapsible-content {
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, opacity 0.5s ease-out; /* เปลี่ยนจาก height เป็น max-height */
+            max-height: 1000px; /* ค่าเริ่มต้นที่ใหญ่พอสำหรับเนื้อหาที่เปิดอยู่ */
+            opacity: 1;
+        }
+
+        .collapsible-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+
+        /* ================================================= */
+        /* Form Elements Styles (จากคำตอบเดิม) */
+        /* ================================================= */
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="date"],
+        .form-group select,
+        .form-group textarea {
+            width: calc(100% - 22px); /* Full width minus padding and border */
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            box-sizing: border-box; /* Include padding and border in width */
+            font-family: 'Kanit', sans-serif; /* Ensure Thai font */
+        }
+
+        .form-group textarea {
+            resize: vertical; /* Allow vertical resizing */
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: #457b9d;
+            box-shadow: 0 0 5px rgba(69, 123, 157, 0.3);
+            outline: none;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            margin-top: 20px; /* เพิ่ม margin-top ให้ปุ่มหากต้องการ */
+        }
+
+        .form-actions button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .form-actions .btn-save {
+            background-color: #457b9d;
+            color: white;
+        }
+
+        .form-actions .btn-save:hover {
+            background-color: #315e7a;
+        }
+
+        .form-actions .btn-cancel {
+            background-color: #e0e0e0;
+            color: #555;
+        }
+
+        .form-actions .btn-cancel:hover {
+            background-color: #ccc;
+        }
+
+        /* File upload styling */
+        .file-upload-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 10px;
+        }
+
+        .file-upload-list li {
+            display: flex;
+            align-items: center;
+            background-color: #f1faee;
+            border: 1px solid #a8dadc;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .file-upload-list li i {
+            margin-right: 8px;
+            color: #457b9d;
+        }
+
+        .file-upload-list li .remove-file {
+            margin-left: auto;
+            color: #e74c3c;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Responsive adjustments */
+        @media only screen and (max-width: 768px) {
+            .asset-form-container {
+                padding: 15px;
+            }
+            .master-collapsible-header {
+                font-size: 1.5em;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .master-collapsible-header .master-collapse-icon {
+                font-size: 0.8em;
+            }
+            .form-section {
+                padding: 15px;
+            }
+            .collapsible-header h3 {
+                font-size: 1.1em;
+                margin-bottom: 15px;
+            }
+            .form-group label {
+                font-size: 0.9em;
+                margin-bottom: 5px;
+            }
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                padding: 8px;
+                font-size: 0.9em;
+            }
+            .form-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .form-actions button {
+                width: 100%;
+                padding: 10px;
+                font-size: 0.9em;
+            }
+        }
+    </style>
+
+    <div class="asset-form-container">
+        <h2 class="master-collapsible-header">
+            <i class="fas fa-plus-circle"></i> บันทึกสินทรัพย์ใหม่
+            <i class="fas fa-chevron-up master-collapse-icon"></i> </h2>
+
+        <div class="master-collapsible-content">
+            <form id="newAssetForm">
+                <div class="form-section">
+                    <h3 class="collapsible-header">
+                        <i class="fas fa-info-circle"></i> ข้อมูลสินทรัพย์หลัก
+                        <i class="fas fa-chevron-down collapse-icon"></i>
+                    </h3>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label for="assetId">รหัสสินทรัพย์:</label>
+                            <input type="text" id="assetId" name="assetId" placeholder="กรอกรหัสสินทรัพย์" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="assetName">ชื่อสินทรัพย์:</label>
+                            <input type="text" id="assetName" name="assetName" placeholder="กรอกชื่อสินทรัพย์" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="assetType">ประเภทสินทรัพย์:</label>
+                            <select id="assetType" name="assetType" required>
+                                <option value="">-- เลือกประเภท --</option>
+                                <option value="equipment">ครุภัณฑ์</option>
+                                <option value="building">อาคารและสิ่งปลูกสร้าง</option>
+                                <option value="vehicle">ยานพาหนะ</option>
+                                <option value="it">อุปกรณ์ไอที</option>
+                                <option value="other">อื่นๆ</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="serialNumber">หมายเลขซีเรียล/รุ่น:</label>
+                            <input type="text" id="serialNumber" name="serialNumber" placeholder="หมายเลขซีเรียล หรือรุ่น">
+                        </div>
+                        <div class="form-group">
+                            <label for="assetDescription">รายละเอียดเพิ่มเติม:</label>
+                            <textarea id="assetDescription" name="assetDescription" rows="3" placeholder="คำอธิบายสินทรัพย์โดยละเอียด"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="collapsible-header">
+                        <i class="fas fa-hand-holding-usd"></i> ข้อมูลการได้มา
+                        <i class="fas fa-chevron-down collapse-icon"></i>
+                    </h3>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label for="acquisitionDate">วันที่ได้มา:</label>
+                            <input type="date" id="acquisitionDate" name="acquisitionDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cost">ราคาทุน (บาท):</label>
+                            <input type="number" id="cost" name="cost" min="0" step="0.01" placeholder="กรอกราคาทุน" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="vendor">ผู้ขาย/ผู้ผลิต:</label>
+                            <input type="text" id="vendor" name="vendor" placeholder="ชื่อผู้ขาย หรือผู้ผลิต">
+                        </div>
+                        <div class="form-group">
+                            <label for="invoiceNumber">เลขที่ใบเสร็จ/ใบกำกับภาษี:</label>
+                            <input type="text" id="invoiceNumber" name="invoiceNumber" placeholder="เลขที่เอกสารการซื้อ">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="collapsible-header">
+                        <i class="fas fa-users"></i> ข้อมูลการใช้งาน
+                        <i class="fas fa-chevron-down collapse-icon"></i>
+                    </h3>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label for="department">แผนกที่ใช้งาน:</label>
+                            <select id="department" name="department" required>
+                                <option value="">-- เลือกแผนก --</option>
+                                <option value="accounting">บัญชี</option>
+                                <option value="hr">บุคคล</option>
+                                <option value="it">ไอที</option>
+                                <option value="marketing">การตลาด</option>
+                                <option value="operations">ปฏิบัติการ</option>
+                                <option value="admin">ธุรการ</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="location">สถานที่ตั้ง:</label>
+                            <input type="text" id="location" name="location" placeholder="เช่น อาคาร A ชั้น 3 ห้อง 301">
+                        </div>
+                        <div class="form-group">
+                            <label for="responsiblePerson">ผู้รับผิดชอบ:</label>
+                            <input type="text" id="responsiblePerson" name="responsiblePerson" placeholder="ชื่อผู้รับผิดชอบสินทรัพย์">
+                        </div>
+                        <div class="form-group">
+                            <label for="startDate">วันที่เริ่มใช้งาน:</label>
+                            <input type="date" id="startDate" name="startDate">
+                        </div>
+                        <div class="form-group">
+                            <label for="usefulLife">อายุการใช้งานโดยประมาณ (ปี):</label>
+                            <input type="number" id="usefulLife" name="usefulLife" min="0" step="1" placeholder="จำนวนปี">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3 class="collapsible-header">
+                        <i class="fas fa-paperclip"></i> เอกสารประกอบ
+                        <i class="fas fa-chevron-down collapse-icon"></i>
+                    </h3>
+                    <div class="collapsible-content">
+                        <div class="form-group">
+                            <label for="assetDocuments">แนบเอกสาร (เช่น ใบเสร็จ, รูปภาพ, คู่มือ):</label>
+                            <input type="file" id="assetDocuments" name="assetDocuments" multiple accept=".pdf, .doc, .docx, .jpg, .jpeg, .png">
+                            <ul id="fileList" class="file-upload-list">
+                                </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="alert('ยกเลิกการบันทึกสินทรัพย์');">ยกเลิก</button>
+                    <button type="submit" class="btn-save">บันทึกสินทรัพย์</button>
+                </div>
+            </form>
+        </div> </div>
+
+    <script>
+        // ================================================= */
+        // NEW: Master Collapse/Expand Script
+        // ================================================= */
+        document.querySelector('.master-collapsible-header').addEventListener('click', function() {
+            this.classList.toggle('collapsed');
+            const content = document.querySelector('.master-collapsible-content');
+            if (content) {
+                content.classList.toggle('collapsed');
+            }
+
+            // เปลี่ยนไอคอน
+            const icon = this.querySelector('.master-collapse-icon');
+            if (this.classList.contains('collapsed')) {
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            } else {
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            }
+        });
+
+        // ================================================= */
+        // ORIGINAL SCRIPT FOR SECTION COLLAPSE
+        // ================================================= */
+        document.querySelectorAll('.collapsible-header').forEach(header => {
+            header.addEventListener('click', function() {
+                // Toggle 'collapsed' class on the header
+                this.classList.toggle('collapsed');
+
+                // Find the next sibling element which is the content
+                const content = this.nextElementSibling;
+                if (content && content.classList.contains('collapsible-content')) {
+                    content.classList.toggle('collapsed');
+                }
+            });
+        });
+
+        // ================================================= */
+        // ORIGINAL SCRIPT FOR FILE UPLOAD AND FORM SUBMISSION
+        // ================================================= */
+        document.getElementById('assetDocuments').addEventListener('change', function() {
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = ''; // Clear previous list
+
+            if (this.files.length > 0) {
+                for (let i = 0; i < this.files.length; i++) {
+                    const file = this.files[i];
+                    const listItem = document.createElement('li');
+                    listItem.innerHTML = `<i class="fas fa-file"></i> ${file.name} <span class="remove-file" data-index="${i}">&times;</span>`;
+                    fileList.appendChild(listItem);
+                }
+            }
+        });
+
+        // Dummy remove file function (would require more complex logic for actual file removal)
+        document.getElementById('fileList').addEventListener('click', function(event) {
+            if (event.target.classList.contains('remove-file')) {
+                alert('ฟังก์ชันลบไฟล์ยังไม่สมบูรณ์ (แค่ตัวอย่างการแสดงผล)');
+                event.target.closest('li').remove(); // Remove from UI
+                // In a real app, you would need to manage the actual file input's files property
+                // or handle this on form submission with server-side logic.
+            }
+        });
+
+        document.getElementById('newAssetForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // ป้องกันการ submit ฟอร์มแบบปกติ
+            
+            // ในอนาคต: ดึงข้อมูลจากฟอร์มและส่งไปยัง Backend ด้วย Fetch API หรือ Axios
+            const formData = new FormData(this);
+            const assetData = {};
+            for (let [key, value] of formData.entries()) {
+                assetData[key] = value;
+            }
+            
+            console.log('ข้อมูลสินทรัพย์ที่บันทึก:', assetData);
+            alert('บันทึกสินทรัพย์ใหม่เรียบร้อยแล้ว (ฟังก์ชันจริงจะส่งข้อมูลไปเซิร์ฟเวอร์)');
+            
+            // อาจจะรีเซ็ตฟอร์ม หรือปิดแท็บ หรือเปลี่ยนไปหน้าอื่น
+            // this.reset();
+        });
+
+    </script>
+</body>
+</html>

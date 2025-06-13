@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายการสินทรัพย์</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* General styles for the container */
+        .asset-list-container {
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            height: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Prevent container scroll, table will scroll */
+        }
+
+        .asset-list-container h2 {
+            color: #457b9d;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+            font-weight: 600;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .asset-list-container h2 i {
+            font-size: 1.1em;
+        }
+
+        /* Search & Filter Section */
+        .search-filter-section {
+            margin-bottom: 20px;
+            background-color: #f8f8f8;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 20px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.03);
+        }
+
+        .search-filter-section .form-group {
+            margin-bottom: 15px;
+        }
+
+        .search-filter-section label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .search-filter-section input[type="text"],
+        .search-filter-section input[type="date"],
+        .search-filter-section select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: 'Kanit', sans-serif;
+            font-size: 0.95em;
+        }
+
+        .search-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end; /* Align buttons to the right */
+            margin-top: 20px;
+        }
+
+        .search-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+        }
+
+        .search-actions .btn-primary {
+            background-color: #4CAF50; /* Green for Search */
+            color: white;
+        }
+
+        .search-actions .btn-primary:hover {
+            background-color: #45a049;
+        }
+
+        .search-actions .btn-secondary {
+            background-color: #007bff; /* Blue for Advanced Search toggle */
+            color: white;
+        }
+
+        .search-actions .btn-secondary:hover {
+            background-color: #0056b3;
+        }
+
+        .advanced-search-fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        /* Asset Table Styles */
+        .asset-table-container {
+            flex-grow: 1; /* Occupy remaining space */
+            overflow-y: auto; /* Enable vertical scrolling for the table */
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background-color: #fff;
+        }
+
+        .asset-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        .asset-table th,
+        .asset-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .asset-table th {
+            background-color: #f2f2f2;
+            color: #555;
+            font-weight: 600;
+            position: sticky; /* Make header sticky */
+            top: 0;
+            z-index: 1;
+        }
+
+        .asset-table tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .asset-table .no-data-row td {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+            font-style: italic;
+        }
+
+        .asset-table .action-buttons button {
+            background: none;
+            border: none;
+            color: #007bff;
+            cursor: pointer;
+            font-size: 1.1em;
+            margin-right: 8px;
+            transition: color 0.2s ease;
+        }
+
+        .asset-table .action-buttons button:hover {
+            color: #0056b3;
+        }
+        .asset-table .action-buttons .btn-edit {
+            color: #ffc107; /* Yellow for Edit */
+        }
+        .asset-table .action-buttons .btn-edit:hover {
+            color: #e0a800;
+        }
+        .asset-table .action-buttons .btn-view {
+            color: #17a2b8; /* Cyan for View */
+        }
+        .asset-table .action-buttons .btn-view:hover {
+            color: #138496;
+        }
+
+        /* Utility classes for hiding/showing */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="asset-list-container">
+        <h2><i class="fas fa-list-alt"></i> รายการสินทรัพย์</h2>
+
+        <div class="search-filter-section">
+            <div class="form-group">
+                <label for="generalSearch">ค้นหาสินทรัพย์</label>
+                <input type="text" id="generalSearch" placeholder="ค้นหาด้วยรหัสหรือชื่อสินทรัพย์">
+            </div>
+
+            <div id="advancedSearchForm" class="hidden">
+                <div class="advanced-search-fields">
+                    <div class="form-group">
+                        <label for="assetIdSearch">รหัสสินทรัพย์</label>
+                        <input type="text" id="assetIdSearch">
+                    </div>
+                    <div class="form-group">
+                        <label for="assetNameSearch">ชื่อสินทรัพย์</label>
+                        <input type="text" id="assetNameSearch">
+                    </div>
+                    <div class="form-group">
+                        <label for="assetTypeSearch">ประเภทสินทรัพย์</label>
+                        <select id="assetTypeSearch">
+                            <option value="">ทั้งหมด</option>
+                            <option value="ที่ดิน">ที่ดิน</option>
+                            <option value="อาคาร">อาคาร</option>
+                            <option value="เครื่องจักร">เครื่องจักร</option>
+                            <option value="อุปกรณ์">อุปกรณ์</option>
+                            <option value="ยานพาหนะ">ยานพาหนะ</option>
+                            <option value="คอมพิวเตอร์">คอมพิวเตอร์</option>
+                            <option value="เฟอร์นิเจอร์">เฟอร์นิเจอร์</option>
+                            <option value="ซอฟต์แวร์">ซอฟต์แวร์</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="assetStatusSearch">สถานะ</label>
+                        <select id="assetStatusSearch">
+                            <option value="">ทั้งหมด</option>
+                            <option value="ใช้งานอยู่">ใช้งานอยู่</option>
+                            <option value="ชำรุด">ชำรุด</option>
+                            <option value="ระหว่างซ่อมบำรุง">ระหว่างซ่อมบำรุง</option>
+                            <option value="จำหน่ายแล้ว">จำหน่ายแล้ว</option>
+                            <option value="รอจำหน่าย">รอจำหน่าย</option>
+                            <option value="สูญหาย">สูญหาย</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="custodianSearch">ผู้ดูแล</label>
+                        <input type="text" id="custodianSearch">
+                    </div>
+                    <div class="form-group">
+                        <label for="departmentSearch">แผนก</label>
+                        <select id="departmentSearch">
+                            <option value="">ทั้งหมด</option>
+                            <option value="การผลิต">การผลิต</option>
+                            <option value="บัญชี">บัญชี</option>
+                            <option value="ฝ่ายขาย">ฝ่ายขาย</option>
+                            <option value="การตลาด">การตลาด</option>
+                            <option value="IT">IT</option>
+                            <option value="ทรัพยากรบุคคล">ทรัพยากรบุคคล</option>
+                            <option value="บริหาร">บริหาร</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="acquisitionDateFrom">วันที่ได้มา (จาก)</label>
+                        <input type="date" id="acquisitionDateFrom">
+                    </div>
+                    <div class="form-group">
+                        <label for="acquisitionDateTo">วันที่ได้มา (ถึง)</label>
+                        <input type="date" id="acquisitionDateTo">
+                    </div>
+                </div>
+            </div>
+
+            <div class="search-actions">
+                <button type="button" id="toggleAdvancedSearch" class="btn-secondary">
+                    <i class="fas fa-plus"></i> ค้นหาขั้นสูง
+                </button>
+                <button type="button" id="searchAssetsBtn" class="btn-primary">
+                    <i class="fas fa-search"></i> ค้นหา
+                </button>
+            </div>
+        </div>
+
+        <div class="asset-table-container">
+            <table class="asset-table">
+                <thead>
+                    <tr>
+                        <th>รหัสสินทรัพย์</th>
+                        <th>ชื่อสินทรัพย์</th>
+                        <th>ประเภท</th>
+                        <th>สถานะ</th>
+                        <th>ผู้ดูแล</th>
+                        <th>วันที่ได้มา</th>
+                        <th>มูลค่าเริ่มต้น</th>
+                        <th>การดำเนินการ</th>
+                    </tr>
+                </thead>
+                <tbody id="assetTableBody">
+                    <tr class="no-data-row">
+                        <td colspan="8">กรุณากด 'ค้นหา' เพื่อแสดงรายการสินทรัพย์</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleAdvancedSearchBtn = document.getElementById('toggleAdvancedSearch');
+            const advancedSearchForm = document.getElementById('advancedSearchForm');
+            const searchAssetsBtn = document.getElementById('searchAssetsBtn');
+            const assetTableBody = document.getElementById('assetTableBody');
+
+            // Toggle Advanced Search
+            toggleAdvancedSearchBtn.addEventListener('click', function() {
+                advancedSearchForm.classList.toggle('hidden');
+                if (advancedSearchForm.classList.contains('hidden')) {
+                    toggleAdvancedSearchBtn.innerHTML = '<i class="fas fa-plus"></i> ค้นหาขั้นสูง';
+                } else {
+                    toggleAdvancedSearchBtn.innerHTML = '<i class="fas fa-minus"></i> ซ่อนการค้นหาขั้นสูง';
+                }
+            });
+
+            // Simulate Asset Data (Dummy Data)
+            const allAssets = [
+                { id: 'ASSET001', name: 'เครื่องจักรผลิต A', type: 'เครื่องจักร', status: 'ใช้งานอยู่', custodian: 'สมศักดิ์', acquisitionDate: '2022-01-15', initialValue: '1,500,000.00' },
+                { id: 'ASSET002', name: 'รถยนต์กระบะขนส่ง', type: 'ยานพาหนะ', status: 'ใช้งานอยู่', custodian: 'มานะ', acquisitionDate: '2021-03-20', initialValue: '850,000.00' },
+                { id: 'ASSET003', name: 'คอมพิวเตอร์สำนักงาน #1', type: 'คอมพิวเตอร์', status: 'ใช้งานอยู่', custodian: 'สุดา', acquisitionDate: '2023-05-10', initialValue: '25,000.00' },
+                { id: 'ASSET004', name: 'เครื่องจักรผลิต B', type: 'เครื่องจักร', status: 'ชำรุด', custodian: 'สมศักดิ์', acquisitionDate: '2020-11-01', initialValue: '1,200,000.00' },
+                { id: 'ASSET005', name: 'โต๊ะทำงานผู้บริหาร', type: 'เฟอร์นิเจอร์', status: 'ใช้งานอยู่', custodian: 'พรชัย', acquisitionDate: '2023-01-22', initialValue: '12,000.00' },
+                { id: 'ASSET006', name: 'ที่ดินเปล่า (ส่วนขยาย)', type: 'ที่ดิน', status: 'ใช้งานอยู่', custodian: 'สมพร', acquisitionDate: '2019-07-01', initialValue: '5,000,000.00' },
+                { id: 'ASSET007', name: 'เครื่องปรับอากาศชั้น 3', type: 'อุปกรณ์', status: 'ระหว่างซ่อมบำรุง', custodian: 'ช่างบำรุง', acquisitionDate: '2018-09-05', initialValue: '45,000.00' },
+                { id: 'ASSET008', name: 'อาคารสำนักงานใหญ่', type: 'อาคาร', status: 'ใช้งานอยู่', custodian: 'บริหาร', acquisitionDate: '2010-01-01', initialValue: '25,000,000.00' },
+                { id: 'ASSET009', name: 'ซอฟต์แวร์บัญชี (License)', type: 'ซอฟต์แวร์', status: 'ใช้งานอยู่', custodian: 'บัญชี', acquisitionDate: '2024-02-01', initialValue: '150,000.00' },
+                { id: 'ASSET010', name: 'เครื่องถ่ายเอกสารแผนกขาย', type: 'อุปกรณ์', status: 'ใช้งานอยู่', custodian: 'นารี', acquisitionDate: '2023-11-20', initialValue: '35,000.00' },
+                { id: 'ASSET011', name: 'เครื่องจักรผลิต C', type: 'เครื่องจักร', status: 'ใช้งานอยู่', custodian: 'สมศักดิ์', acquisitionDate: '2024-01-01', initialValue: '1,800,000.00' },
+                { id: 'ASSET012', name: 'รถยนต์ส่วนกลาง', type: 'ยานพาหนะ', status: 'จำหน่ายแล้ว', custodian: 'บริหาร', acquisitionDate: '2017-06-15', initialValue: '700,000.00' },
+            ];
+
+            function displayAssets(assetsToDisplay) {
+                assetTableBody.innerHTML = ''; // Clear existing rows
+
+                if (assetsToDisplay.length === 0) {
+                    assetTableBody.innerHTML = '<tr class="no-data-row"><td colspan="8">ไม่พบข้อมูลสินทรัพย์</td></tr>';
+                    return;
+                }
+
+                assetsToDisplay.forEach(asset => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${asset.id}</td>
+                        <td>${asset.name}</td>
+                        <td>${asset.type}</td>
+                        <td>${asset.status}</td>
+                        <td>${asset.custodian}</td>
+                        <td>${asset.acquisitionDate}</td>
+                        <td>${asset.initialValue}</td>
+                        <td class="action-buttons">
+                            <button type="button" class="btn-view" data-id="${asset.id}" title="ดูรายละเอียด"><i class="fas fa-eye"></i></button>
+                            <button type="button" class="btn-edit" data-id="${asset.id}" title="แก้ไข"><i class="fas fa-edit"></i></button>
+                        </td>
+                    `;
+                    assetTableBody.appendChild(row);
+                });
+
+                // Add event listeners for new buttons
+                assetTableBody.querySelectorAll('.btn-view').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const assetId = this.dataset.id;
+                        // For demonstration, we use a placeholder asset_detail.html
+                        if (typeof openWindow === 'function') { // Check if openWindow from index.html is available
+                            openWindow('view-asset-details-' + assetId, 'รายละเอียดสินทรัพย์ ' + assetId, 'fas fa-eye', 'asset_detail.html?id=' + assetId);
+                        } else {
+                             alert(`ดูรายละเอียดสินทรัพย์: ${assetId} (จะเปิดในหน้าต่างใหม่)`);
+                             console.warn("openWindow function not found. Please ensure index.html is properly loaded.");
+                        }
+                    });
+                });
+
+                assetTableBody.querySelectorAll('.btn-edit').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const assetId = this.dataset.id;
+                        // For demonstration, we use a placeholder asset_edit.html
+                        if (typeof openWindow === 'function') { // Check if openWindow from index.html is available
+                             openWindow('edit-asset-' + assetId, 'แก้ไขสินทรัพย์ ' + assetId, 'fas fa-edit', 'asset_edit.html?id=' + assetId);
+                        } else {
+                             alert(`แก้ไขสินทรัพย์: ${assetId} (จะเปิดในหน้าต่างใหม่)`);
+                             console.warn("openWindow function not found. Please ensure index.html is properly loaded.");
+                        }
+                    });
+                });
+            }
+
+            // Search functionality
+            searchAssetsBtn.addEventListener('click', function() {
+                const generalSearchTerm = document.getElementById('generalSearch').value.toLowerCase();
+                const assetIdSearch = document.getElementById('assetIdSearch').value.toLowerCase();
+                const assetNameSearch = document.getElementById('assetNameSearch').value.toLowerCase();
+                const assetTypeSearch = document.getElementById('assetTypeSearch').value;
+                const assetStatusSearch = document.getElementById('assetStatusSearch').value;
+                const custodianSearch = document.getElementById('custodianSearch').value.toLowerCase();
+                const departmentSearch = document.getElementById('departmentSearch').value;
+                const acquisitionDateFrom = document.getElementById('acquisitionDateFrom').value;
+                const acquisitionDateTo = document.getElementById('acquisitionDateTo').value;
+
+                let filteredAssets = allAssets.filter(asset => {
+                    // General Search
+                    if (generalSearchTerm && !(asset.id.toLowerCase().includes(generalSearchTerm) || asset.name.toLowerCase().includes(generalSearchTerm))) {
+                        return false;
+                    }
+
+                    // Advanced Search Filters
+                    if (assetIdSearch && !asset.id.toLowerCase().includes(assetIdSearch)) return false;
+                    if (assetNameSearch && !asset.name.toLowerCase().includes(assetNameSearch)) return false;
+                    if (assetTypeSearch && assetTypeSearch !== asset.type) return false;
+                    if (assetStatusSearch && assetStatusSearch !== asset.status) return false;
+                    if (custodianSearch && !asset.custodian.toLowerCase().includes(custodianSearch)) return false;
+                    // Department filter is not in dummy data, but if it were:
+                    // if (departmentSearch && asset.department !== departmentSearch) return false; 
+
+                    if (acquisitionDateFrom && asset.acquisitionDate < acquisitionDateFrom) return false;
+                    if (acquisitionDateTo && asset.acquisitionDate > acquisitionDateTo) return false;
+
+                    return true;
+                });
+
+                displayAssets(filteredAssets);
+            });
+
+            // Initial state: show "no data" message
+            displayAssets([]); 
+        });
+    </script>
+</body>
+</html>
